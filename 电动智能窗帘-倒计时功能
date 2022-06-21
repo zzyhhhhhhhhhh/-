@@ -1,0 +1,63 @@
+<!--index.wxml-->
+<view class='box' hidden='{{hidden}}'>
+  <view class='title'>倒计时</view>
+  <view class='time'>{{num}}</view>
+  <view class='btnLayout'>
+    <button bindtap='start' disabled="{{btnDisabled}}">开始计时</button>
+    <button bindtap='stop'>停止计时</button>
+  </view>
+</view>
+
+
+// index.js
+// 获取应用实例
+// pages/kj/Timer/index.js
+var num = 60; //计时器显示的数字
+var timerID; //计时器ID
+Page({
+  data: {
+    hidden: true, //小程序运行时不显示计时界面
+    num: num //将全局变量赋值给绑定变量
+  },
+ 
+  onLoad: function(options) {
+    var that = this;
+    setTimeout(() => {
+      that.show()
+    }, 2000) //1秒钟后显示计时界面
+  },
+ 
+  show: function () { //显示计时界面函数
+    var that = this;
+    that.setData({
+      hidden: false //显示计时界面
+    })
+  },
+ 
+  start: function() { //开始计时函数
+    var that = this;
+    timerID = setInterval(() => {
+      that.timer()
+    }, 1000) //每隔1s调用一次timer函数
+  },
+ 
+  stop: function() { //停止计时函数
+    clearInterval(timerID) //清除计时器
+  },
+ 
+  timer: function() { //计时函数
+    var that = this;
+    console.log(num)
+    if (num > 0) {
+      that.setData({
+        num: num-- //每次减1
+      })
+    } else {
+      that.setData({
+        num: 0
+      })
+    }
+    console.log(num)
+  }
+ 
+})
