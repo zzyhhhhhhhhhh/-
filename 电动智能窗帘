@@ -1,0 +1,282 @@
+用户名密码登录：
+<!--index.wxml-->
+<input class="input" bindinput="getName">输入用户名</input>
+<input class="input" bindinput="getZhangHao">输入用户账号</input>
+<input class="input" bindinput="getMiMa">输入密码</input>
+<button bindtap="zhuce" type="primary">注册</button>
+<!--pages/login/login.wxml-->
+<input class="input" bindinput="getZhanghao">输入账号</input>
+<input class="input" bindinput="getMima">输入密码</input>
+<button bindtap="login" type="primary">登录</button>
+// pages/login/login.js
+Page({
+  data: {
+  zhanghao: '',
+  mima: ''
+  },//获取输入的账号
+  getZhanghao(event) {
+  //console.log('账号', event.detail.value)
+  this.setData({
+   zhanghao: event.detail.value
+  }) },
+  //获取输入的密码
+  getMima(event) {
+  // console.log('密码', event.detail.value)
+  this.setData({
+   mima: event.detail.value
+  })
+  },//点击登陆
+  login() {
+  let zhanghao = this.data.zhanghao
+  let mima = this.data.mima
+  console.log('账号', zhanghao, '密码', mima)
+  if (zhanghao.length < 4) {
+   wx.showToast({
+    icon: 'none',
+    title: '账号至少4位',
+   }) return}
+  if (mima.length < 4) {
+   wx.showToast({
+    icon: 'none',
+    title: '账号至少4位', })
+   return } //登陆
+  wx.cloud.database().collection('user').where({
+   zhanghao: zhanghao
+  }).get({
+   success(res) {
+    console.log("获取数据成功", res)
+    let user = res.data[0]
+    console.log("user", user)
+    if (mima == user.mima) {
+     console.log('登陆成功')
+     wx.showToast({
+      title: '登陆成功', })
+     wx.navigateTo({
+      url: '/pages/me/me',
+     })//保存用户登陆状态
+     wx.setStorageSync('user', user)
+    } else {
+     console.log('登陆失败')
+     wx.showToast({
+      icon: 'none',
+      title: '账号或密码不正确',
+     })}},
+   fail(res) {
+    console.log("获取数据失败", res)
+   }  }) } })
+连接舵机和软件端：
+<button   bindtap="getDevices"  type="primary">获得周边蓝牙设备</button><view wx:if="{{showFlag}}" wx:for="{{devices}}" wx:for-item="devices" wx:key="key" bindtap="create" data-index="{{index}}" ><view>
+{{devices.name}}: {{devices.deviceId}}  
+   </view>
+</view>
+<view>选择蓝牙设备{{name}}: {{deviceId}} </view>
+<view wx:for="{{services}}"  wx:for-item="service" bindtap="choise" wx:key="services" data-index="{{index}}"><view>选择服务值：{{service.uuid}} </view></view>
+<view wx:for="{{characteristics}}" wx:for-item="characteristics" wx:key="characteristics" data-index="{{index}}">
+特征值：{{characteristics.uuid}}</view>
+<button  bindtap="startread" type="primary" >开启notisfy</button>
+<text space="&ensp">\n</text>
+<button bindtap="startwrite1" type="primary">开灯</button>
+<text space="&ensp">\n</text>
+    <button bindtap="startwrite2" type="primary">关灯</button>
+// pages/bluetooth1/bluetooth1.js
+Page({
+data: {
+    discoverFlag:false,
+    devices:[],
+    deviceId:'',
+    serviceId:'',
+    services:[],
+    characteristics:[],
+    characteristicId:'',
+    showFlag:true,
+    name:'',state:false,sendmsg:'hah',
+    },
+/**
+   * 生命周期函数--监听页面加载
+   */
+  onLoad: function (options) {
+    wx.openBluetoothAdapter({
+      success (res) {
+        console.log(res)
+   }})},
+/**
+   * 生命周期函数--监听页面初次渲染完成
+   */
+  onReady: function () {
+},
+
+  /**
+   * 生命周期函数--监听页面显示
+   */
+  onShow: function () {
+ },
+/**
+   * 生命周期函数--监听页面隐藏
+   */
+  onHide: function () {
+},
+ /** * 生命周期函数--监听页面卸载 */
+  onUnload: function () {
+ },
+ /** * 页面相关事件处理函数--监听用户下拉动作*/
+  onPullDownRefresh: function () {
+ },
+ /** * 页面上拉触底事件的处理函数 */
+  onReachBottom: function () {
+ },
+  onShareAppMessage: function () {
+ },
+  openAdapter:function(){
+ },
+  discoverDevices:function(){
+     let that=this
+    },
+  getDevices:function(){
+    let that=this
+    function ab2hex(buffer) {
+      var hexArr = Array.prototype.map.call(
+        new Uint8Array(buffer),
+        function(bit) {
+          return ('00' + bit.toString(16)).slice(-2)
+        } )
+      return hexArr.join('');
+    }
+    wx.startBluetoothDevicesDiscovery({
+      services: [],
+      success (res) {
+        console.log(res),
+        that.setData({
+          discoverFlag:res.isDiscovering
+        }) },
+ })
+      if(this.data.discoverFlag){
+        // ArrayBuffer转16进度字符串示例
+wx.onBluetoothDeviceFound(function(res) {
+  var devices = res.devices;
+  console.log('new device list has founded')
+  console.dir(devices)
+  console.log(ab2hex(devices[0].advertisData))
+}) }
+wx.getBluetoothDevices({
+   success: function (res) {
+    console.log(res)
+    if (res.devices[0]) {
+      console.log(ab2hex(res.devices[0].advertisData)),
+      that.setData({
+        devices:res.devices
+      }) } }}) },
+create(e){
+  let that=this
+  console.log(e)
+    let index=e.currentTarget.dataset.index
+  wx.createBLEConnection({
+    deviceId:that.data.devices[index].deviceId,
+    success (res) {
+      console.log(res)
+      that.setData({deviceId:that.data.devices[index].deviceId,
+        name:that.data.devices[index].name,
+        showFlag:false,
+      })
+      wx.getBLEDeviceServices({
+        // 这里的 deviceId 需要已经通过 wx.createBLEConnection 与对应设备建立连接
+        deviceId:that.data.deviceId,
+        success (res) {
+          console.log('device services:', res.services),
+          that.setData({services:res.services})
+          }, })
+    }, }) },
+choise(e){
+  console.log(e)
+  let that=this
+  let index=e.currentTarget.dataset.index
+  let serviceId=this.data.services[index].uuid
+  this.setData({
+    serviceId:serviceId
+  })
+  wx.getBLEDeviceCharacteristics({
+    // 这里的 deviceId 需要已经通过 wx.createBLEConnection 与对应设备建立链接
+    deviceId:this.data.deviceId,
+    // 这里的 serviceId 需要在 wx.getBLEDeviceServices 接口中获取
+    serviceId:this.data.serviceId,
+    success (res) {
+      console.log('device getBLEDeviceCharacteristics:', res.characteristics)
+      that.setData({
+        characteristics:res.characteristics,
+        characteristicId:res.characteristics[0].uuid
+      })},})},
+startread:function(e){
+// 必须在这里的回调才能获取
+console.log(e)
+wx.stopBluetoothDevicesDiscovery
+({
+  success: function (res) 
+  {
+    console.log("停止搜索" + JSON.stringify(res.errMsg));
+ }})
+wx.readBLECharacteristicValue({
+// 这里的 deviceId 需要已经通过 wx.createBLEConnection 与对应设备建立链接
+    deviceId:this.data.deviceId,
+    // 这里的 serviceId 需要在 wx.getBLEDeviceServices 接口中获取
+    serviceId:this.data.serviceId,
+  // 这里的 characteristicId 需要在 getBLEDeviceCharacteristics 接口中获取
+  characteristicId:this.data.characteristics[0].uuid,
+  success (res) {
+    console.log('readBLECharacteristicValue:', res.errCode)
+  }})
+wx.notifyBLECharacteristicValueChange({
+  state: true, // 启用 notify 功能
+  // 这里的 deviceId 需要已经通过 createBLEConnection 与对应设备建立链接
+  deviceId:this.data.deviceId,
+  // 这里的 serviceId 需要在 getBLEDeviceServices 接口中获取
+  serviceId:this.data.serviceId,
+  // 这里的 characteristicId 需要在 getBLEDeviceCharacteristics 接口中获取
+  characteristicId:this.data.characteristicId,
+  success (res) {
+    console.log('notifyBLECharacteristicValueChange success', res.errMsg)
+  }
+})
+function ab2hex(buffer) {
+  var hexArr = Array.prototype.map.call(
+  
+  new Uint8Array(buffer),
+  function(bit) {
+  return ('00' + bit.toString(16)).slice(-2)
+   } )
+   return hexArr.join('');
+   }
+   wx.onBLECharacteristicValueChange(function (res) {
+  console.log('characteristic value comed:', ab2hex(res.value))
+ })},
+startwrite1:function(event){
+  let buffer = new ArrayBuffer(1)
+let dataView = new DataView(buffer)
+dataView.setUint8(0, 100)
+wx.writeBLECharacteristicValue({
+  // 这里的 deviceId 需要已经通过 createBLEConnection 与对应设备建立链接
+  deviceId:this.data.deviceId,
+  // 这里的 serviceId 需要在 getBLEDeviceServices 接口中获取
+  serviceId:this.data.serviceId,
+  // 这里的 characteristicId 需要在 getBLEDeviceCharacteristics 接口中获取
+  characteristicId:this.data.characteristicId,
+  value: buffer,
+  success (res) {
+    console.log('writeBLECharacteristicValue success', res.errMsg),
+    console.log('发送的是:',buffer)
+  } }) },
+  startwrite2:function(event){
+    let buffer = new ArrayBuffer(1)
+  let dataView = new DataView(buffer)
+  dataView.setUint8(0, 99)
+  
+  wx.writeBLECharacteristicValue({
+    // 这里的 deviceId 需要已经通过 createBLEConnection 与对应设备建立链接
+    deviceId:this.data.deviceId,
+    // 这里的 serviceId 需要在 getBLEDeviceServices 接口中获取
+    serviceId:this.data.serviceId,
+    // 这里的 characteristicId 需要在 getBLEDeviceCharacteristics 接口中获取
+    characteristicId:this.data.characteristicId,
+    value: buffer,
+    success (res) {
+      console.log('writeBLECharacteristicValue success', res.errMsg),
+      console.log('发送的是:',buffer)
+} })},})
